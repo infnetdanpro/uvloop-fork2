@@ -34,9 +34,16 @@ cdef class _UDPSendContext:
         ctx.req.data = <void*> ctx
         Py_INCREF(ctx)
 
-        PyObject_GetBuffer(data, &ctx.py_buf, PyBUF_SIMPLE)
-        ctx.uv_buf.base = <char*>ctx.py_buf.buf
-        ctx.uv_buf.len = ctx.py_buf.len
+        if PyMemoryView_Check(data):
+            mv_buf = PyMemoryView_GET_BUFFER(data)
+            ctx.uv_buf.base = <char*>mv_buf.buf
+            ctx.uv_buf.len = mv_buf.len
+            ctx.used_pybuf = 0
+        else:
+            PyObject_GetBuffer(data, &ctx.py_buf, PyBUF_SIMPLE)
+            ctx.uv_buf.base = <char*>ctx.py_buf.buf
+            ctx.uv_buf.len = ctx.py_buf.len
+            ctx.used_pybuf = 1
         ctx.udp = udp
 
         ctx.closed = 0
