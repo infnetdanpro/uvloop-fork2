@@ -16,6 +16,7 @@ cdef extern from "Python.h":
     int PyMemoryView_Check(object obj)
     Py_buffer* PyMemoryView_GET_BUFFER(object obj)
     Py_buffer* PyMemoryView_GET_BUFFER(object obj)
+    Py_buffer* PyMemoryView_GET_BUFFER(object obj)
 
     cdef enum:
         PyBUF_WRITE
