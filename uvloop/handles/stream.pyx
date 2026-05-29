@@ -105,6 +105,7 @@ cdef class _StreamWriteContext:
 
             Py_buffer* p_pybufs
             uv.uv_buf_t* p_uvbufs
+            Py_buffer* mv_buf
 
         ctx = _StreamWriteContext.__new__(_StreamWriteContext)
         ctx.stream = None
@@ -351,6 +352,7 @@ cdef class UVStream(UVBaseTransport):
             Py_ssize_t written
             bint used_buf = 0
             Py_buffer py_buf
+            Py_buffer* mv_buf
             void* buf
             Py_ssize_t blen
             int saved_errno

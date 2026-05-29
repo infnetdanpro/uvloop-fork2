@@ -26,7 +26,9 @@ cdef class _UDPSendContext:
 
     @staticmethod
     cdef _UDPSendContext new(UDPTransport udp, object data):
-        cdef _UDPSendContext ctx
+        cdef:
+            _UDPSendContext ctx
+            Py_buffer* mv_buf
         ctx = _UDPSendContext.__new__(_UDPSendContext)
         ctx.udp = None
         ctx.closed = 1
