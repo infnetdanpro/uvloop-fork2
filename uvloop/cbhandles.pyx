@@ -85,6 +85,7 @@ cdef class Handle:
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as ex:
+            cdef Loop loop = self.loop
             if cb_type == 1:
                 msg = 'Exception in callback {}'.format(callback)
             else:
@@ -99,12 +100,12 @@ cdef class Handle:
             if self._source_traceback is not None:
                 context['source_traceback'] = self._source_traceback
 
-            self.loop.call_exception_handler(context)
+            loop.call_exception_handler(context)
 
         finally:
-            context = self.context
+            ctx = self.context
             Py_DECREF(self)
-            Context_Exit(context)
+            Context_Exit(ctx)
 
     cdef _cancel(self):
         self._cancelled = 1
@@ -235,6 +236,9 @@ cdef class TimerHandle:
             self.timer = None  # let the UVTimer handle GC
 
     cdef _run(self):
+        cdef Loop loop = self.loop
+        cdef bint is_debug = loop._debug
+        cdef double started, delta
         if self._cancelled == 1:
             return
         if self.callback is None:
@@ -247,7 +251,7 @@ cdef class TimerHandle:
         # we guard 'self' manually.
         Py_INCREF(self)
 
-        if self.loop._debug:
+        if is_debug:
             started = time_monotonic()
         try:
             assert self.context is not None
@@ -269,18 +273,18 @@ cdef class TimerHandle:
             if self._debug_info is not None:
                 context['source_traceback'] = self._debug_info[1]
 
-            self.loop.call_exception_handler(context)
+            loop.call_exception_handler(context)
         else:
-            if self.loop._debug:
+            if is_debug:
                 delta = time_monotonic() - started
-                if delta > self.loop.slow_callback_duration:
+                if delta > loop.slow_callback_duration:
                     aio_logger.warning(
                         'Executing %r took %.3f seconds',
                         self, delta)
         finally:
-            context = self.context
+            ctx = self.context
             Py_DECREF(self)
-            Context_Exit(context)
+            Context_Exit(ctx)
             self._clear()
 
     # Public API
@@ -319,7 +323,8 @@ cdef class TimerHandle:
         return self._when
 
 
-cdef format_callback_name(func):
+cdef inline str format_callback_name(object func):
+    cdef str cb_name
     if hasattr(func, '__qualname__'):
         cb_name = getattr(func, '__qualname__')
     elif hasattr(func, '__name__'):
